@@ -45,7 +45,7 @@ error() {
 
 init() {
 	CONF=~/.maintainport.conf
-	[ -f ${CONF} ] && . ${CONF}
+	[ -f ${CONF} -a -r ${CONF} ] && . ${CONF}
 	EDITOR=${EDITOR:-vi}
 	SHELL=${SHELL:-/bin/tcsh}
 	PAGER=${PAGER:-"less -R"}
