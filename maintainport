@@ -1,0 +1,326 @@
+#!/bin/sh
+
+readonly yellow="\033[1;33m"
+readonly white="\033[1;37m"
+readonly end="\033[0m"
+readonly green="\033[0;32m"
+readonly bred="\033[1;31m"
+
+readonly STR_MISSED_POUDRIERE="You don't have poudriere. Please install!"
+readonly STR_MISSED_COLORDIFF="You don't have colordiff. If you want to use please install it!"
+readonly STR_MISSED_PORTLINT="You dont'have portlint. Please install!"
+readonly STR_BAD_CATPORT_STYLE="'%s' isn't category/portname-style."
+readonly STR_PORT_NOTEXIST="'%s' does not exist in '%s'."
+readonly STR_LOGFILE_NOTEXIST="Logfile '%s' does not exist."
+readonly STR_COPY_LOGFILE="Copying logfile to %s..."
+readonly STR_SUFFIX_LOGFILE="Please add a suffix string to the logfile!"
+
+PORT=""
+WORKINGDIR=""
+
+# Print a simple message
+message() {
+	printf "${yellow}>>${white} $* ${end}\n"
+}
+
+# Print and read a simple question
+question() {
+	printf "${green}$*${end}\n" >&2
+	read X
+	echo $X
+}
+
+wait_for_enter() {
+	MSG=${1:-Please press ENTER.}
+	message ${MSG}
+	read X
+}
+
+# Print an error message into stderr
+error() {
+	local first=$1
+	shift
+	printf "${bred}!! ${red}${first}${end}\n" $* >&2
+}
+
+init() {
+	CONF=~/.maintainport.conf
+	[ -f ${CONF} ] && . ${CONF}
+	EDITOR=${EDITOR:-vi}
+	SHELL=${SHELL:-/bin/tcsh}
+	PAGER=${PAGER:-"less -R"}
+
+	VCS="${VCS:-svnlite}"
+	VCS_STATUS="${VCS_STATUS:-status}"
+	VCS_DIFF="${VCS_DIFF:-diff}"
+	VCS_REVERT="${VCS_REVERT:-revert --recursive}"
+
+	P_PORTSDIR=${P_PORTSDIR:-/usr/local/poudriere/ports/}
+	P_PORT=${P_PORT:-default}
+	P_LOGDIR=${P_LOGDIR:-/usr/local/poudriere/data/logs/bulk/}
+
+	WWW_LOGDIR=${WWW_LOGDIR:-/usr/local/www/freebsd/logs/}
+	WWW_DIFFDIR=${WWW_DIFFDIR:-/usr/local/www/freebsd/diff/}
+
+	MSG=0
+	if which -s poudriere; then
+		POUDRIERE=poudriere
+	else
+		POUDRIERE=""
+		MSG=1
+		error ${STR_MISSED_POUDRIERE}
+	fi
+
+	if which -s colordiff; then
+		COLORDIFF="colordiff"
+	else
+		COLORDIFF="cat"
+		MSG=1
+		message ${STR_MISSED_COLORDIFF}
+	fi
+
+	if which -s portlint; then
+		PORTLINT=portlint
+	else
+		PORTLINT=""
+		MSG=1
+		error ${STR_MISSED_PORTLINT}
+	fi
+
+	if [ ${MSG} -gt 0 ]; then
+		wait_for_enter
+	fi
+}
+
+# Check if ${PORTSDIR}/${PORT} exist
+# Params:
+# return 1 if isn't valid else 0
+check_port() {
+	if echo ${PORT} | grep -qvx "[[:alnum:]-]\+/[[:alnum:]-]\+"; then
+		error "${STR_BAD_CATPORT_STYLE}" "${PORT}"
+		exit 1
+	fi
+	WORKINGDIR=${P_PORTSDIR}/${P_PORT}/${PORT}
+	if [ ! -d ${WORKINGDIR} ]; then
+		error "${STR_PORT_NOTEXIST}" "${PORT}" "${P_PORTSDIR}/${P_PORT}"
+		exit 1
+	fi
+}
+
+# Parse parameters
+# Runs check_port for valid port.
+parse_params() {
+	PORT=$1
+	if [ $# -lt 1 ]; then
+		error "Missing port"
+		exit 1
+	fi
+
+	check_port
+}
+
+get_poudriere_jails() {
+	${POUDRIERE} jail -l | sed -n '2,$ s| .*||p'
+}
+
+get_pkgname() {
+	make -VPKGNAME -C ${WORKINGDIR}
+}
+
+# Check if port is changed.
+port_changed() {
+	CURDIR=`pwd`
+	cd ${WORKINGDIR}
+	if ${VCS} ${VCS_STATUS} . | grep -q ".*"; then
+		echo " (modified)"
+	fi 
+	cd ${CURDIR}
+}
+
+menu_main() {
+	MODIFIED=`port_changed`
+	exec 3>&1
+	CHOICE=`dialog --title "${PORT}${MODIFIED}" \
+	--no-cancel --default-item ${DEFAULT_ITEM} \
+	--menu "Choose an option" 20 60 17 \
+		M "Edit Makefile" \
+		D "Update distinfo (make makesum)" \
+		L "Run portlint" \
+		T "Run poudriere testport" \
+		C "Configure and run poudriere testport" \
+    F "Edit pkg-plist (files)" \
+		V "View diff" \
+		S "Run shell" \
+		P "Create testpackage" \
+		R "Report" \
+		X "Revert changes" \
+		Q "Quit" 2>&1 1>&3`
+	if [ $? -gt 0 ]; then return 1 ; fi
+	DEFAULT_ITEM=${CHOICE}
+	case ${CHOICE} in
+		M)
+      ( cd ${WORKINGDIR} && ${EDITOR} Makefile )
+			;;
+		D)
+			message "Updating distinfo..."
+			make makesum -C ${WORKINGDIR}
+			if [ $? -gt 0 ]; then
+				error "An error occured."
+				wait_for_enter
+			fi
+			;;
+		L)
+			if [ -z "${PORTLINT}" ]; then
+				error "You don't have portlint!"
+				read X
+			else
+        PORTSDIR=${P_PORTSDIR}
+        echo ${PORTSDIR}
+				${PORTLINT} -Ac ${WORKINGDIR} | ${PAGER}
+			fi
+			;;
+		T)
+			menu_poudriere
+			;;
+		C)
+			menu_poudriere -c
+			;;
+    F)
+      ( cd ${WORKINGDIR} && ${EDITOR} pkg-plist )
+      ;;
+		V)
+			view_diff | ${PAGER}
+			;;
+		S)
+			cd ${WORKINGDIR}
+			${SHELL}
+			;;
+		P)
+			build_test_package
+			;;
+		R)
+			create_report
+			;;
+		X)
+			revert_changes
+			;;
+		Q)
+			return 1
+			;;
+	esac
+	return 0
+
+}
+
+create_diff() {
+	CURDIR=`pwd`
+	cd ${WORKINGDIR}
+	${VCS} ${VCS_DIFF} .
+	cd ${CURDIR}
+}
+
+view_diff() {
+# TODO svn status
+	create_diff | ${COLORDIFF}
+}
+
+# Return values:
+# JAIL variable will store the jail name
+menu_choose_jail() {
+	JAILS=`get_poudriere_jails`
+	JAILS_NR=`echo ${JAILS} | tr ' ' '\n' | cat -n`
+	exec 3>&1
+	CHOICE=`dialog --title "${PORT}" --menu "Which jail?" 15 40 4 ${JAILS_NR} 2>&1 1>&3`
+	JAIL=`echo ${JAILS} | tr ' ' '\n' | sed -n "${CHOICE}p"`
+	return $?
+}
+
+# Params:
+# $1 - additional options to poudriere
+menu_poudriere() {
+	if [ -z "${POUDRIERE}" ]; then
+		error "You don't have poudriere!"
+		read X
+	else
+		menu_choose_jail
+		if [ $? -gt 0 ]; then return 1; fi
+		run_poudriere ${JAIL} $1
+	fi
+}
+
+# Params:
+# $1 - which jail
+# $2 - additional options
+run_poudriere() {
+	message "Running poudriere testport in jail ${JAIL}"
+	#LOGDIR=`date +'testport/%Y%m%d-%H%M'`
+	LOGDIR=latest/logs/
+	${POUDRIERE} testport $2 -j ${1} -p ${P_PORT} ${PORT}
+	RET=$?
+	message "Poudriere in jail ${JAIL} finished. Exit value: ${RET}"
+	message "Test results"
+	LOGFILE=${P_LOGDIR}/${JAIL}-${P_PORT}/${LOGDIR}/`get_pkgname`.log
+	sed -n '/stage-qa/,/staging violations/p' ${LOGFILE}
+	A=`question "Do you want to see the full logfile?"`
+	if [ "$A" = "y" ]; then
+		cat ${LOGFILE} | ${PAGER}
+	fi
+	if [ $RET -eq 0 ]; then
+		copy_logfile ${JAIL}
+	fi
+}
+
+# Params:
+# $1 - which jail
+build_test_package() {
+	menu_choose_jail
+	[ $? -gt 0 ] && return 1
+	message "Build ${PORT} package in ${JAIL}"
+	${POUDRIERE} bulk -B test_package/`date +%Y%m%d-%H%M` -j ${JAIL} ${PORT}
+	if [ $? -eq 0 ]; then
+		message "Copy the package into ${WWW_TESTPACKAGEDIR}"
+		cp ${P_PACKDIR}/${JAIL}-${P_PORT}/All/`get_pkgname`${PACK_SUFFIX} ${WWW_TESTPACKAGEDIR}
+	fi
+	wait_for_enter
+}
+
+# Params
+# $1 runned jail
+copy_logfile() {
+	if [ -e "${LOGFILE}" ]; then
+		DESTLOGDIR=${WWW_LOGDIR}/${PORT}/${JAIL}-${P_PORT}/
+		message "${STR_COPY_LOGFILE}" "${DESTLOGDIR}"
+		SUFFIX=`question "${STR_SUFFIX_LOGFILE}"`
+		mkdir -p ${DESTLOGDIR}
+		cp ${LOGFILE} ${DESTLOGDIR}/`get_pkgname`${SUFFIX}.log
+	else
+		error "${STR_LOGFILE_NOTEXIST}" "${LOGFILE}"
+	fi
+}
+
+create_report() {
+	message "Copy diff to ${WWW_DIFFDIR}"
+	mkdir -p ${WWW_DIFFDIR}/${PORT}
+	create_diff > ${WWW_DIFFDIR}/${PORT}/`get_pkgname`.diff
+	wait_for_enter
+}
+
+revert_changes() {
+	dialog --title "Confirmation" --yesno "Are you sure to revert ${PORT}?" 5 50
+	if [ $? -eq 0 ]; then
+		message "Reverting ${WORKINGDIR}..."
+		CURDIR=`pwd`
+		cd ${WORKINGDIR}
+		${VCS} ${VCS_REVERT} .
+		cd ${CURDIR}
+		wait_for_enter
+	fi
+}
+
+init
+parse_params $*
+
+DEFAULT_ITEM="M"
+while menu_main; do
+done
+
