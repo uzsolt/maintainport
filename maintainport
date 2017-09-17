@@ -174,9 +174,10 @@ menu_main() {
 				error "You don't have portlint!"
 				read X
 			else
-        PORTSDIR=${P_PORTSDIR}
-        echo ${PORTSDIR}
-				${PORTLINT} -Ac ${WORKINGDIR} | ${PAGER}
+        (
+          export PORTSDIR=${P_PORTSDIR}/${P_PORT}
+          ${PORTLINT} -Ac ${WORKINGDIR} | ${PAGER}
+        )
 			fi
 			;;
 		T)
