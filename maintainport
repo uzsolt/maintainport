@@ -232,8 +232,9 @@ menu_choose_jail() {
 	JAILS_NR=`echo ${JAILS} | tr ' ' '\n' | cat -n`
 	exec 3>&1
 	CHOICE=`dialog --title "${PORT}" --menu "Which jail?" 15 40 4 ${JAILS_NR} 2>&1 1>&3`
+	result=$?
 	JAIL=`echo ${JAILS} | tr ' ' '\n' | sed -n "${CHOICE}p"`
-	return $?
+	return ${result}
 }
 
 # Params:
