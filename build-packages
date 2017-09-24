@@ -8,7 +8,6 @@ POUDRIERE=/usr/local/bin/poudriere
 LISTDIR=/usr/local/etc/poudriere.d/
 PACKDIR=/usr/local/poudriere/data/packages/
 HTMLDIR=/usr/local/www/pkg/
-FTPDIR=/usr/home/ftp/public/freebsd/
 
 msg() {
     echo " >>> $*"
@@ -89,13 +88,6 @@ check_updates() {
     echo ${OUTDATED_PACKAGES}
 }
 
-link() {
-    mkdir -p ${FTPDIR}/${B_ARCH}/All
-    rm -rf ${FTPDIR}/${B_ARCH}/All/*
-    ln ${PACKAGEDIR}/* ${FTPDIR}/${B_ARCH}/All
-    ln -f ${PACKAGEDIR}/../*.txz ${FTPDIR}/${B_ARCH}
-}
-
 build_information() {
     msg LISTFILE=${LISTFILE}
     msg JAIL=${JAIL}
@@ -173,16 +165,12 @@ case "${B_CMD}" in
         build_information
         /usr/bin/nice -n 15 ${POUDRIERE} bulk -j ${JAIL} -p ${PORTS} -f ${LISTFILE} ${POSTFIX}
         [ -n "${HTMLFILE}" ] && generate_html_table > ${HTMLFILE}
-        # link
         ;;
     check)
         check_updates
         ;;
     html)
         generate_html_table > ${HTMLFILE}
-        ;;
-    link)
-        link
         ;;
     *)
         echo Unknown command: $1.
