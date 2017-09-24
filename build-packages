@@ -109,7 +109,7 @@ B_CMD=$2
 [ -z "${B_CMD}" ] && B_CMD=build
 
 case "${B_ARCH}" in
-    amd64)
+    10amd64-q)
         LISTFILE=${LISTDIR}/amd64-list
         JAIL=10amd64
         ARCH=AMD64
@@ -118,7 +118,7 @@ case "${B_ARCH}" in
         PACKAGEDIR=${PACKDIR}/10amd64-${PORTS}/All
         HTMLFILE=${HTMLDIR}/packages-amd64.html
         ;;
-    11amd64)
+    11amd64-q)
         LISTFILE=${LISTDIR}/amd64-list
         JAIL=11amd64
         ARCH=AMD64
@@ -127,24 +127,14 @@ case "${B_ARCH}" in
         PACKAGEDIR=${PACKDIR}/11amd64-${PORTS}/All
         HTMLFILE=${HTMLDIR}/packages-11amd64.html
         ;;
-    amd64-server)
-        LISTFILE=${LISTDIR}/amd64-server-list
-        JAIL=amd64
-        ARCH=AMD64-SERVER
-        ARCHL=amd64-server
-        PORTS=quarterly
-        PSET=server
-        PACKAGEDIR=${PACKDIR}/amd64-${PORTS}-server/All
-        HTMLFILE=${HTMLDIR}/packages-amd64-server.html
-        ;;
-    arm)
-        LISTFILE=${LISTDIR}/arm-list
-        JAIL=10arm
-        ARCH=ARM
-        ARCHL=arm
-        PORTS=quarterly
-        PACKAGEDIR=${PACKDIR}/10arm-${PORTS}/All
-        HTMLFILE=${HTMLDIR}/packages-arm.html
+    10amd64-head)
+        LISTFILE=${LISTDIR}/amd64-head-list
+        JAIL=10amd64
+        ARCH=AMD64
+        ARCHL=amd64
+        PORTS=head
+        PACKAGEDIR=${PACKDIR}/10amd64-${PORTS}/All
+        HTMLFILE=
         ;;
     *)
         echo Unknown jail: $1.
