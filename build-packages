@@ -1,0 +1,191 @@
+#!/bin/sh
+
+PATH=/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
+
+PKG=/usr/local/sbin/pkg
+
+POUDRIERE=/usr/local/bin/poudriere
+LISTDIR=/usr/local/etc/poudriere.d/
+PACKDIR=/usr/local/poudriere/data/packages/
+HTMLDIR=/usr/local/www/pkg/
+FTPDIR=/usr/home/ftp/public/freebsd/
+
+msg() {
+    echo " >>> $*"
+}
+
+html_css() {
+cat << EOF
+    <link rel="stylesheet" type="text/css" href="pkg.css">
+EOF
+}
+
+html_prolog() {
+    echo "<h1>FreeBSD 10.x unofficial repository for ${ARCH}</h1>"
+    echo "<p>"
+    echo "This is an <b>unofficial</b> FreeBSD 10.x repository for ${ARCH}."
+    echo "</p>"
+    echo "Current packages with their options:"
+}
+
+html_header() {
+cat << EOF
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+EOF
+
+    echo "  <title>FreeBSD repository for ${ARCH}</title>"
+    html_css
+    echo '</head>'
+}
+
+html_table() {
+    echo ""
+    echo "<table>"
+    for package in `ls ${PACKAGEDIR}/*.txz | sort -f`; do
+        echo "<tr><td>"
+        ${PKG} query -F ${package} "  <a href=http://pkg.uzsolt.hu/${ARCHL}/All/%n-%v.txz>%n-%v</a><br>
+  (<a class=freshports href=http://freshports.org/%o>%o</a>)</td>
+<td>"
+        if [ `${PKG} query -F ${package} "%#O"` -gt 0 ]; then
+            #echo "  <ul style='list-style-type:none'>"
+            echo "  <ul>"
+            ${PKG} query -F ${package} "  <li class='option %Ov'>%Ok - %Ov</li>"
+            echo "  </ul>"
+        fi
+        echo "</td></tr>"
+        echo ""
+    done
+}
+
+html_tail() {
+    echo "</table>"
+    echo "<p><b>Total `ls ${PACKAGEDIR}/*.txz | wc -l` packages.</b></p>"
+    echo "<p>"
+    echo "This repository is maintained by Zsolt Udvari (udvzsolt gmail com). Generated at " `date +"%Y.%m.%d. %H:%M:%S"`
+    echo "</p>"
+    echo "</html>"
+}
+
+generate_html_table() {
+    html_header
+    html_prolog
+    html_table
+    html_tail
+}
+
+check_updates() {
+    OUTDATED_PACKAGES=""
+    for f in ${PACKAGEDIR}/*.txz; do
+        ORIGIN=`${PKG} query -F ${f} '%o'`
+        VER1=`${PKG} query -F ${f} '%v'`
+        VER2=`make -C /usr/home/poudriere/ports/default/${ORIGIN} -V PKGVERSION`
+        if [ `${PKG} version -t ${VER1} ${VER2}` = '<' ]; then
+            OUTDATED_PACKAGES="${OUTDATED_PACKAGES} ${ORIGIN}"
+        fi
+    done
+    echo ${OUTDATED_PACKAGES}
+}
+
+link() {
+    mkdir -p ${FTPDIR}/${B_ARCH}/All
+    rm -rf ${FTPDIR}/${B_ARCH}/All/*
+    ln ${PACKAGEDIR}/* ${FTPDIR}/${B_ARCH}/All
+    ln -f ${PACKAGEDIR}/../*.txz ${FTPDIR}/${B_ARCH}
+}
+
+build_information() {
+    msg LISTFILE=${LISTFILE}
+    msg JAIL=${JAIL}
+    msg PORTS=${PORTS}
+    if [ -n "${PSET}" ]; then
+        msg PSET=${PSET}
+    fi
+    if [ -n "${HTMLFILE}" ]; then
+        msg "HTMLFILE=${HTMLFILE}"
+    else
+        msg "No HTML output."
+    fi
+}
+
+[ $# -lt 1 ] && exit 1
+
+B_ARCH=$1
+B_CMD=$2
+[ -z "${B_CMD}" ] && B_CMD=build
+
+case "${B_ARCH}" in
+    amd64)
+        LISTFILE=${LISTDIR}/amd64-list
+        JAIL=10amd64
+        ARCH=AMD64
+        ARCHL=amd64
+        PORTS=quarterly
+        PACKAGEDIR=${PACKDIR}/10amd64-${PORTS}/All
+        HTMLFILE=${HTMLDIR}/packages-amd64.html
+        ;;
+    11amd64)
+        LISTFILE=${LISTDIR}/amd64-list
+        JAIL=11amd64
+        ARCH=AMD64
+        ARCHL=amd64
+        PORTS=quarterly
+        PACKAGEDIR=${PACKDIR}/11amd64-${PORTS}/All
+        HTMLFILE=${HTMLDIR}/packages-11amd64.html
+        ;;
+    amd64-server)
+        LISTFILE=${LISTDIR}/amd64-server-list
+        JAIL=amd64
+        ARCH=AMD64-SERVER
+        ARCHL=amd64-server
+        PORTS=quarterly
+        PSET=server
+        PACKAGEDIR=${PACKDIR}/amd64-${PORTS}-server/All
+        HTMLFILE=${HTMLDIR}/packages-amd64-server.html
+        ;;
+    amd64-union)
+        LISTFILE=${LISTDIR}/amd64-union-list
+        JAIL=amd64
+        PORTS=union
+        ;;
+    arm)
+        LISTFILE=${LISTDIR}/arm-list
+        JAIL=10arm
+        ARCH=ARM
+        ARCHL=arm
+        PORTS=quarterly
+        PACKAGEDIR=${PACKDIR}/10arm-${PORTS}/All
+        HTMLFILE=${HTMLDIR}/packages-arm.html
+        ;;
+    *)
+        echo Unknown jail: $1.
+        exit 1
+esac
+
+shift
+
+case "${B_CMD}" in
+    build)
+        POSTFIX=""
+        [ -n "${PSET}" ] && POSTFIX="-z ${PSET}"
+        build_information
+        /usr/bin/nice -n 15 ${POUDRIERE} bulk -j ${JAIL} -p ${PORTS} -f ${LISTFILE} ${POSTFIX}
+        [ -n "${HTMLFILE}" ] && generate_html_table > ${HTMLFILE}
+        # link
+        ;;
+    check)
+        check_updates
+        ;;
+    html)
+        generate_html_table > ${HTMLFILE}
+        ;;
+    link)
+        link
+        ;;
+    *)
+        echo Unknown command: $1.
+        exit 1
+esac
+
