@@ -137,11 +137,6 @@ case "${B_ARCH}" in
         PACKAGEDIR=${PACKDIR}/amd64-${PORTS}-server/All
         HTMLFILE=${HTMLDIR}/packages-amd64-server.html
         ;;
-    amd64-union)
-        LISTFILE=${LISTDIR}/amd64-union-list
-        JAIL=amd64
-        PORTS=union
-        ;;
     arm)
         LISTFILE=${LISTDIR}/arm-list
         JAIL=10arm
