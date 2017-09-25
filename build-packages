@@ -157,7 +157,7 @@ case "${B_CMD}" in
         POSTFIX=""
         [ -n "${PSET}" ] && POSTFIX="-z ${PSET}"
         build_information
-        /usr/bin/nice -n 15 ${POUDRIERE} bulk -j ${JAIL} -p ${PORTS} -f ${LISTFILE} ${POSTFIX}
+        /usr/bin/nice -n 15 ${POUDRIERE} bulk -j ${JAIL} -p ${PORTS} -f ${LISTFILE} -J 1:4 ${POSTFIX}
         [ -n "${HTMLFILE}" ] && generate_html_table > ${HTMLFILE}
         ;;
     check)
