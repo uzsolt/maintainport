@@ -5,7 +5,7 @@ PATH=/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 PKG=/usr/local/sbin/pkg
 
 POUDRIERE=/usr/local/bin/poudriere
-LISTDIR=/usr/local/etc/poudriere.d/
+LISTDIR=/usr/local/etc/poudriere.d/lists/
 PACKDIR=/usr/local/poudriere/data/packages/
 HTMLDIR=/usr/local/www/pkg/
 
@@ -128,12 +128,21 @@ case "${B_ARCH}" in
         HTMLFILE=${HTMLDIR}/packages-11amd64.html
         ;;
     10amd64-head)
-        LISTFILE=${LISTDIR}/amd64-head-list
+        LISTFILE=${LISTDIR}/head-list
         JAIL=10amd64
         ARCH=AMD64
         ARCHL=amd64
         PORTS=head
         PACKAGEDIR=${PACKDIR}/10amd64-${PORTS}/All
+        HTMLFILE=
+        ;;
+    11amd64-head)
+        LISTFILE=${LISTDIR}/head-list
+        JAIL=11amd64
+        ARCH=AMD64
+        ARCHL=amd64
+        PORTS=head
+        PACKAGEDIR=${PACKDIR}/11amd64-${PORTS}/All
         HTMLFILE=
         ;;
     *)
