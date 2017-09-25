@@ -177,6 +177,7 @@ x11/libXext
 x11/libXfixes
 x11/libXi
 x11/libXinerama
+x11/libXpm
 x11/libXrandr
 x11/libXrender
 x11/libXtst
