@@ -59,6 +59,7 @@ devel/swig30
 devel/xorg-macros
 devel/yasm
 dns/libidn2
+editors/vim
 emulators/linux_base-c6
 emulators/tpm-emulator
 ftp/curl
