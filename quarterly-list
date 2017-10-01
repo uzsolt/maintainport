@@ -64,6 +64,7 @@ emulators/linux_base-c6
 emulators/tpm-emulator
 ftp/curl
 ftp/linux-c6-curl
+games/wesnoth
 graphics/cairo
 graphics/frei0r
 graphics/jpeg-turbo
