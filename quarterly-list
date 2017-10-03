@@ -27,7 +27,6 @@ devel/boost-libs
 devel/ccache
 devel/check
 devel/cmake
-devel/cmake-modules
 devel/dbus
 devel/dbus-glib
 devel/desktop-file-utils
