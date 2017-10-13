@@ -176,7 +176,7 @@ menu_main() {
 			else
         (
           export PORTSDIR=${P_PORTSDIR}/${P_PORT}
-          ${PORTLINT} -Ac ${WORKINGDIR} | ${PAGER}
+          ${PORTLINT} -abcmt ${WORKINGDIR} | ${PAGER}
         )
 			fi
 			;;
