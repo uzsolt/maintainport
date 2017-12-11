@@ -257,7 +257,7 @@ run_poudriere() {
 	message "Running poudriere testport in jail ${JAIL}"
 	#LOGDIR=`date +'testport/%Y%m%d-%H%M'`
 	LOGDIR=latest/logs/
-	${POUDRIERE} testport $2 -j ${1} -p ${P_PORT} ${PORT}
+	${POUDRIERE} testport $2 -j ${1} -p ${P_PORT} ${PORT}@all
 	RET=$?
 	message "Poudriere in jail ${JAIL} finished. Exit value: ${RET}"
 	message "Test results"
