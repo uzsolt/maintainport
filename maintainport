@@ -237,6 +237,19 @@ menu_choose_jail() {
 	return ${result}
 }
 
+menu_choose_flavor() {
+  FLAVORS=`make -C ${P_PORTSDIR}/${P_PORT}/${PORT} -VFLAVORS`
+  if [ -z "${FLAVORS}" ]; then
+    FLAVOR=""
+  else
+    FLAVORS_NR=`echo ${FLAVORS} | tr ' ' '\n' | cat -n`
+    CHOICE=`dialog --title "${PORT} flavor" --menu "Which flavor?" 15 40 4 ${FLAVORS_NR} 2>&1 1>&3`
+    result=$?
+    FLAVOR=`echo ${FLAVORS} | tr ' ' '\n' | sed -n "${CHOICE} s,^,@,p"`
+    return ${result}
+  fi
+}
+
 # Params:
 # $1 - additional options to poudriere
 menu_poudriere() {
@@ -257,11 +270,12 @@ run_poudriere() {
 	message "Running poudriere testport in jail ${JAIL}"
 	#LOGDIR=`date +'testport/%Y%m%d-%H%M'`
 	LOGDIR=latest/logs/
-	${POUDRIERE} testport $2 -j ${1} -p ${P_PORT} ${PORT}@all
+  menu_choose_flavor
+	${POUDRIERE} testport $2 -j ${1} -p ${P_PORT} ${PORT}${FLAVOR}
 	RET=$?
 	message "Poudriere in jail ${JAIL} finished. Exit value: ${RET}"
 	message "Test results"
-	LOGFILE=${P_LOGDIR}/${JAIL}-${P_PORT}/${LOGDIR}/`get_pkgname`.log
+	LOGFILE=${P_LOGDIR}/${JAIL}-${P_PORT}/${LOGDIR}/`get_pkgname``echo ${FLAVOR} | tr '@' '-'`.log
 	sed -n '/stage-qa/,/staging violations/p' ${LOGFILE}
 	A=`question "Do you want to see the full logfile?"`
 	if [ "$A" = "y" ]; then
