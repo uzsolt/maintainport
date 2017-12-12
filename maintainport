@@ -171,7 +171,7 @@ menu_main() {
 			;;
 		L)
 			if [ -z "${PORTLINT}" ]; then
-				error "You don't have portlint!"
+				error "${STR_MISSED_PORTLINT}"
 				read X
 			else
         (
@@ -265,7 +265,7 @@ menu_before_poudriere() {
 # $1 - additional options to poudriere
 menu_poudriere() {
 	if [ -z "${POUDRIERE}" ]; then
-		error "You don't have poudriere!"
+		error "${STR_MISSED_POUDRIERE}"
 		read X
 	else
     menu_before_poudriere
