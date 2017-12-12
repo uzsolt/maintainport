@@ -12,8 +12,11 @@ readonly STR_MISSED_PORTLINT="You dont'have portlint. Please install!"
 readonly STR_BAD_CATPORT_STYLE="'%s' isn't category/portname-style."
 readonly STR_PORT_NOTEXIST="'%s' does not exist in '%s'."
 readonly STR_LOGFILE_NOTEXIST="Logfile '%s' does not exist."
+readonly STR_COPY_DIFF="Copying diff to %s..."
 readonly STR_COPY_LOGFILE="Copying logfile to %s..."
+readonly STR_COPY_PACKAGE="Copying package into %s..."
 readonly STR_SUFFIX_LOGFILE="Please add a suffix string to the logfile!"
+readonly STR_POUDRIERE_START="Running poudriere testport in jail %s"
 readonly STR_POUDRIERE_FINISHED="Poudriere in jail %s finished. Exit value: %s"
 
 PORT=""
@@ -35,7 +38,7 @@ question() {
 
 wait_for_enter() {
 	MSG=${1:-Please press ENTER.}
-	message ${MSG}
+	message "${MSG}"
 	read X
 }
 
@@ -127,7 +130,11 @@ get_poudriere_jails() {
 }
 
 get_pkgname() {
-	make FLAVOR=${FLAVOR} -VPKGNAME -C ${WORKINGDIR}
+	make -VPKGNAME -C ${WORKINGDIR} $*
+}
+
+get_pkgname_flavor() {
+  get_pkgname FLAVOR=${FLAVOR}
 }
 
 # Check if port is changed.
@@ -281,14 +288,14 @@ menu_poudriere() {
 # $1 - which jail
 # $2 - additional options
 run_poudriere() {
-	message "Running poudriere testport in jail ${JAIL}"
+	message "${STR_POUDRIERE_START}" "${JAIL}"
 	#LOGDIR=`date +'testport/%Y%m%d-%H%M'`
 	LOGDIR=latest/logs/
 	${POUDRIERE} testport $2 -j ${1} -p ${P_PORT} ${PORT}${FLAVOR_AT}
 	RET=$?
 	message "${STR_POUDRIERE_FINISHED}" "${JAIL}" "${RET}"
 	message "Test results"
-	LOGFILE=${P_LOGDIR}/${JAIL}-${P_PORT}/${LOGDIR}/`get_pkgname`.log
+	LOGFILE=${P_LOGDIR}/${JAIL}-${P_PORT}/${LOGDIR}/`get_pkgname_flavor`.log
 	sed -n '/stage-qa/,/staging violations/p' ${LOGFILE}
 	A=`question "Do you want to see the full logfile?"`
 	if [ "$A" = "y" ]; then
@@ -306,8 +313,8 @@ build_test_package() {
 	message "Build ${PORT} package in ${JAIL}"
 	${POUDRIERE} bulk -B test_package/`date +%Y%m%d-%H%M` -j ${JAIL} ${PORT}
 	if [ $? -eq 0 ]; then
-		message "Copy the package into ${WWW_TESTPACKAGEDIR}"
-		cp ${P_PACKDIR}/${JAIL}-${P_PORT}/All/`get_pkgname`${PACK_SUFFIX} ${WWW_TESTPACKAGEDIR}
+		message "${STR_COPY_PACKAGE}" "${WWW_TESTPACKAGEDIR}"
+		cp ${P_PACKDIR}/${JAIL}-${P_PORT}/All/`get_pkgname_flavor`${PACK_SUFFIX} ${WWW_TESTPACKAGEDIR}
 	fi
 	wait_for_enter
 }
@@ -320,14 +327,14 @@ copy_logfile() {
 		message "${STR_COPY_LOGFILE}" "${DESTLOGDIR}"
 		SUFFIX=`question "${STR_SUFFIX_LOGFILE}"`
 		mkdir -p ${DESTLOGDIR}
-		cp ${LOGFILE} ${DESTLOGDIR}/`get_pkgname`${SUFFIX}.log
+		cp ${LOGFILE} ${DESTLOGDIR}/`get_pkgname_flavor`${SUFFIX}.log
 	else
 		error "${STR_LOGFILE_NOTEXIST}" "${LOGFILE}"
 	fi
 }
 
 create_report() {
-	message "Copy diff to ${WWW_DIFFDIR}"
+	message "${STR_COPY_DIFF}" "${WWW_DIFFDIR}"
 	mkdir -p ${WWW_DIFFDIR}/${PORT}
 	create_diff > ${WWW_DIFFDIR}/${PORT}/`get_pkgname`.diff
 	wait_for_enter
