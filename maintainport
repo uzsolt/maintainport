@@ -14,13 +14,16 @@ readonly STR_PORT_NOTEXIST="'%s' does not exist in '%s'."
 readonly STR_LOGFILE_NOTEXIST="Logfile '%s' does not exist."
 readonly STR_COPY_LOGFILE="Copying logfile to %s..."
 readonly STR_SUFFIX_LOGFILE="Please add a suffix string to the logfile!"
+readonly STR_POUDRIERE_FINISHED="Poudriere in jail %s finished. Exit value: %s"
 
 PORT=""
 WORKINGDIR=""
 
 # Print a simple message
 message() {
-	printf "${yellow}>>${white} $* ${end}\n"
+  MSG=$1
+  shift
+	printf "${yellow}>>${white} ${MSG} ${end}\n" $*
 }
 
 # Print and read a simple question
@@ -283,7 +286,7 @@ run_poudriere() {
 	LOGDIR=latest/logs/
 	${POUDRIERE} testport $2 -j ${1} -p ${P_PORT} ${PORT}${FLAVOR_AT}
 	RET=$?
-	message "Poudriere in jail ${JAIL} finished. Exit value: ${RET}"
+	message "${STR_POUDRIERE_FINISHED}" "${JAIL}" "${RET}"
 	message "Test results"
 	LOGFILE=${P_LOGDIR}/${JAIL}-${P_PORT}/${LOGDIR}/`get_pkgname`.log
 	sed -n '/stage-qa/,/staging violations/p' ${LOGFILE}
