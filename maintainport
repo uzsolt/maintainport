@@ -124,7 +124,7 @@ get_poudriere_jails() {
 }
 
 get_pkgname() {
-	make -VPKGNAME -C ${WORKINGDIR}
+	make FLAVOR=${FLAVOR} -VPKGNAME -C ${WORKINGDIR}
 }
 
 # Check if port is changed.
@@ -237,17 +237,28 @@ menu_choose_jail() {
 	return ${result}
 }
 
+# Return values:
+# FLAVOR variable will store the flavor
 menu_choose_flavor() {
   FLAVORS=`make -C ${P_PORTSDIR}/${P_PORT}/${PORT} -VFLAVORS`
   if [ -z "${FLAVORS}" ]; then
     FLAVOR=""
+    FLAVOR_AT=""
   else
     FLAVORS_NR=`echo ${FLAVORS} | tr ' ' '\n' | cat -n`
-    CHOICE=`dialog --title "${PORT} flavor" --menu "Which flavor?" 15 40 4 ${FLAVORS_NR} 2>&1 1>&3`
+    CHOICE=`dialog --title "${PORT} flavor" \
+      --menu "Which flavor?" 15 40 4 ${FLAVORS_NR} 2>&1 1>&3`
     result=$?
-    FLAVOR=`echo ${FLAVORS} | tr ' ' '\n' | sed -n "${CHOICE} s,^,@,p"`
+    FLAVOR=`echo ${FLAVORS} | tr ' ' '\n' | sed -n "${CHOICE}p"`
+    FLAVOR_AT="@${FLAVOR}"
     return ${result}
   fi
+}
+
+# Ask everything needed before run poudriere
+menu_before_poudriere() {
+  menu_choose_jail || return 1
+  menu_choose_flavor || return 1
 }
 
 # Params:
@@ -257,7 +268,7 @@ menu_poudriere() {
 		error "You don't have poudriere!"
 		read X
 	else
-		menu_choose_jail
+    menu_before_poudriere
 		if [ $? -gt 0 ]; then return 1; fi
 		run_poudriere ${JAIL} $1
 	fi
@@ -270,12 +281,11 @@ run_poudriere() {
 	message "Running poudriere testport in jail ${JAIL}"
 	#LOGDIR=`date +'testport/%Y%m%d-%H%M'`
 	LOGDIR=latest/logs/
-  menu_choose_flavor
-	${POUDRIERE} testport $2 -j ${1} -p ${P_PORT} ${PORT}${FLAVOR}
+	${POUDRIERE} testport $2 -j ${1} -p ${P_PORT} ${PORT}${FLAVOR_AT}
 	RET=$?
 	message "Poudriere in jail ${JAIL} finished. Exit value: ${RET}"
 	message "Test results"
-	LOGFILE=${P_LOGDIR}/${JAIL}-${P_PORT}/${LOGDIR}/`get_pkgname``echo ${FLAVOR} | tr '@' '-'`.log
+	LOGFILE=${P_LOGDIR}/${JAIL}-${P_PORT}/${LOGDIR}/`get_pkgname`.log
 	sed -n '/stage-qa/,/staging violations/p' ${LOGFILE}
 	A=`question "Do you want to see the full logfile?"`
 	if [ "$A" = "y" ]; then
@@ -289,8 +299,7 @@ run_poudriere() {
 # Params:
 # $1 - which jail
 build_test_package() {
-	menu_choose_jail
-	[ $? -gt 0 ] && return 1
+  menu_before_poudriere || return 1
 	message "Build ${PORT} package in ${JAIL}"
 	${POUDRIERE} bulk -B test_package/`date +%Y%m%d-%H%M` -j ${JAIL} ${PORT}
 	if [ $? -eq 0 ]; then
