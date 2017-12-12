@@ -172,7 +172,7 @@ menu_main() {
 		L)
 			if [ -z "${PORTLINT}" ]; then
 				error "${STR_MISSED_PORTLINT}"
-				read X
+        wait_for_enter
 			else
         (
           export PORTSDIR=${P_PORTSDIR}/${P_PORT}
@@ -266,7 +266,7 @@ menu_before_poudriere() {
 menu_poudriere() {
 	if [ -z "${POUDRIERE}" ]; then
 		error "${STR_MISSED_POUDRIERE}"
-		read X
+    wait_for_enter
 	else
     menu_before_poudriere
 		if [ $? -gt 0 ]; then return 1; fi
