@@ -204,7 +204,7 @@ menu_main() {
 			;;
 		S)
 			cd ${WORKINGDIR}
-			${SHELL}
+			${SHELL} -l
 			;;
 		P)
 			build_test_package
