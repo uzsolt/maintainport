@@ -73,6 +73,7 @@ ftp/curl
 graphics/argyllcms
 graphics/cairo
 graphics/colord
+graphics/freeglut
 graphics/gdk-pixbuf2
 graphics/giflib
 graphics/graphite2
