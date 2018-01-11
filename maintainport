@@ -74,7 +74,7 @@ init() {
 	else
 		POUDRIERE=""
 		MSG=1
-		error ${STR_MISSED_POUDRIERE}
+		error "${STR_MISSED_POUDRIERE}"
 	fi
 
 	if which -s colordiff; then
@@ -82,7 +82,7 @@ init() {
 	else
 		COLORDIFF="cat"
 		MSG=1
-		message ${STR_MISSED_COLORDIFF}
+		message "${STR_MISSED_COLORDIFF}"
 	fi
 
 	if which -s portlint; then
@@ -90,7 +90,7 @@ init() {
 	else
 		PORTLINT=""
 		MSG=1
-		error ${STR_MISSED_PORTLINT}
+		error "${STR_MISSED_PORTLINT}"
 	fi
 
 	if [ ${MSG} -gt 0 ]; then
