@@ -134,7 +134,11 @@ get_pkgname() {
 }
 
 get_pkgname_flavor() {
-  get_pkgname FLAVOR=${FLAVOR}
+  if [ -n "${FLAVOR}" ]; then
+    get_pkgname FLAVOR="${FLAVOR}"
+  else
+    get_pkgname
+  fi
 }
 
 # Check if port is changed.
