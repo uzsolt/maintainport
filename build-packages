@@ -1,13 +1,13 @@
 #!/bin/sh
 
 PATH=/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
-
 PKG=/usr/local/sbin/pkg
-
 POUDRIERE=/usr/local/bin/poudriere
-LISTDIR=/usr/local/etc/poudriere.d/lists/
-PACKDIR=/usr/local/poudriere/data/packages/
-HTMLDIR=/usr/local/www/pkg/
+CONF=~/.build-packages.conf
+
+err() {
+  echo "!!! $*"
+}
 
 msg() {
     echo " >>> $*"
@@ -20,9 +20,9 @@ EOF
 }
 
 html_prolog() {
-    echo "<h1>FreeBSD 10.x unofficial repository for ${ARCH}</h1>"
+    echo "<h1>FreeBSD ${HTMLVERSION} unofficial repository for ${ARCH}</h1>"
     echo "<p>"
-    echo "This is an <b>unofficial</b> FreeBSD 10.x repository for ${ARCH}."
+    echo "This is an <b>unofficial</b> FreeBSD ${HTMLVERSION} repository for ${ARCH}."
     echo "</p>"
     echo "Current packages with their options:"
 }
@@ -102,55 +102,42 @@ build_information() {
     fi
 }
 
-[ $# -lt 1 ] && exit 1
+read_config() {
+  if [ -r "${CONF}" ]; then
+    . ${CONF}
+  else
+    err "Does not exist ${CONF} file. Exit."
+    return 1
+  fi
+}
 
-B_ARCH=$1
-B_CMD=$2
-[ -z "${B_CMD}" ] && B_CMD=build
+parse_params() {
+  if [ $# -lt 1 ]; then
+    err "Missing jail. Exit."
+    return 1
+  else
+    B_ARCH=$1
+    B_CMD=$2
+    [ -z "${B_CMD}" ] && B_CMD=build
+  fi
+}
 
-case "${B_ARCH}" in
-    10amd64-q)
-        LISTFILE=${LISTDIR}/quarterly-list
-        JAIL=10amd64
-        ARCH=AMD64
-        ARCHL=amd64
-        PORTS=quarterly
-        PACKAGEDIR=${PACKDIR}/10amd64-${PORTS}/All
-        HTMLFILE=${HTMLDIR}/packages-amd64.html
-        ;;
-    11amd64-q)
-        LISTFILE=${LISTDIR}/quarterly-list
-        JAIL=11amd64
-        ARCH=AMD64
-        ARCHL=amd64
-        PORTS=quarterly
-        PACKAGEDIR=${PACKDIR}/11amd64-${PORTS}/All
-        HTMLFILE=${HTMLDIR}/packages-11amd64.html
-        ;;
-    10amd64-head)
-        LISTFILE=${LISTDIR}/head-list
-        JAIL=10amd64
-        ARCH=AMD64
-        ARCHL=amd64
-        PORTS=head
-        PACKAGEDIR=${PACKDIR}/10amd64-${PORTS}/All
-        HTMLFILE=
-        ;;
-    11amd64-head)
-        LISTFILE=${LISTDIR}/head-list
-        JAIL=11amd64
-        ARCH=AMD64
-        ARCHL=amd64
-        PORTS=head
-        PACKAGEDIR=${PACKDIR}/11amd64-${PORTS}/All
-        HTMLFILE=
-        ;;
-    *)
-        echo Unknown jail: $1.
-        exit 1
-esac
+load_jail_params() {
+  if type "jail_${B_ARCH}" > /dev/null 2>&1 ; then
+    jail_${B_ARCH}
+    [ -z "${LISTFILE}" ] && { err "LISTFILE isn't set"; return 1; }
+    [ -z "${JAIL}" ] && { err "JAIL isn't set"; return 1; }
+    [ -z "${PORTS}" ] && { err "PORTS isn't set"; return 1; }
+    return 0
+  else
+    err "Jail ${B_ARCH} does not exist (jail_${B_ARCH}). Exit."
+    return 1
+  fi
+}
 
-shift
+read_config || exit 1
+parse_params $@ || exit 1
+load_jail_params || exit 1
 
 case "${B_CMD}" in
     build)
