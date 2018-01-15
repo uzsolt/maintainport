@@ -246,6 +246,7 @@ x11/pixman
 x11/presentproto
 x11/randrproto
 x11/renderproto
+x11/sterm
 x11/xcb-proto
 x11/xcb-util
 x11/xcb-util-renderutil
