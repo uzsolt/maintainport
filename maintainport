@@ -315,7 +315,7 @@ run_poudriere() {
 build_test_package() {
   menu_before_poudriere || return 1
 	message "Build ${PORT} package in ${JAIL}"
-	${POUDRIERE} bulk -B test_package/`date +%Y%m%d-%H%M` -j ${JAIL} ${PORT}
+	${POUDRIERE} bulk -B test_package/`date +%Y%m%d-%H%M` -j ${JAIL} -p ${P_PORT} ${PORT}
 	if [ $? -eq 0 ]; then
 		message "${STR_COPY_PACKAGE}" "${WWW_TESTPACKAGEDIR}"
 		cp ${P_PACKDIR}/${JAIL}-${P_PORT}/All/`get_pkgname_flavor`${PACK_SUFFIX} ${WWW_TESTPACKAGEDIR}
