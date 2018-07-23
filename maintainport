@@ -201,7 +201,9 @@ menu_main() {
 			menu_poudriere -c
 			;;
     F)
-      ( cd ${WORKINGDIR} && ${EDITOR} pkg-plist )
+      (
+        export PORTSDIR=${P_PORTSDIR}/${P_PORT}
+        cd ${WORKINGDIR} && ${EDITOR} `make -VPLIST` )
       ;;
 		V)
 			view_diff | ${PAGER}
