@@ -295,21 +295,29 @@ menu_poudriere() {
 # $2 - additional options
 run_poudriere() {
 	message "${STR_POUDRIERE_START}" "${JAIL}"
-	#LOGDIR=`date +'testport/%Y%m%d-%H%M'`
-	LOGDIR=latest/logs/
 	${POUDRIERE} testport $2 -j ${1} -p ${P_PORT} ${PORT}${FLAVOR_AT}
 	RET=$?
 	message "${STR_POUDRIERE_FINISHED}" "${JAIL}" "${RET}"
-	message "Test results"
-	LOGFILE=${P_LOGDIR}/${JAIL}-${P_PORT}/${LOGDIR}/`get_pkgname_flavor`.log
-	sed -n '/stage-qa/,/staging violations/p' ${LOGFILE}
-	A=`question "Do you want to see the full logfile?"`
-	if [ "$A" = "y" ]; then
-		cat ${LOGFILE} | ${PAGER}
-	fi
-	if [ $RET -eq 0 ]; then
-		copy_logfile ${JAIL}
-	fi
+  process_logfile
+}
+
+process_logfile() {
+  LOGDIR=latest/logs/
+  LOGFILE=${P_LOGDIR}/${JAIL}-${P_PORT}/${LOGDIR}/`get_pkgname_flavor`.log
+  if [ -r "${LOGFILE}" ]; then
+    message "Test results"
+    sed -n '/stage-qa/,/staging violations/p' ${LOGFILE}
+    A=`question "Do you want to see the full logfile?"`
+    if [ "$A" = "y" ]; then
+      cat ${LOGFILE} | ${PAGER}
+    fi
+    if [ $RET -eq 0 ]; then
+      copy_logfile ${JAIL}
+    fi
+  else
+    error "Logfile \`${LOGFILE}\' does not exist."
+    wait_for_enter
+  fi
 }
 
 # Params:
