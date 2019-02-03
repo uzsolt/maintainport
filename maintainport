@@ -141,6 +141,10 @@ get_pkgname_flavor() {
   fi
 }
 
+get_pkgplist() {
+  make -VPLIST -C ${WORKINGDIR}
+}
+
 # Check if port is changed.
 port_changed() {
 	CURDIR=`pwd`
@@ -203,7 +207,7 @@ menu_main() {
     F)
       (
         export PORTSDIR=${P_PORTSDIR}/${P_PORT}
-        cd ${WORKINGDIR} && ${EDITOR} `make -VPLIST` )
+        cd ${WORKINGDIR} && ${EDITOR} `get_pkgplist` )
       ;;
 		V)
 			view_diff | ${PAGER}
@@ -301,6 +305,7 @@ run_poudriere() {
   process_logfile
 }
 
+# Process the logfile
 process_logfile() {
   LOGDIR=latest/logs/
   LOGFILE=${P_LOGDIR}/${JAIL}-${P_PORT}/${LOGDIR}/`get_pkgname_flavor`.log
@@ -311,12 +316,30 @@ process_logfile() {
     if [ "$A" = "y" ]; then
       cat ${LOGFILE} | ${PAGER}
     fi
+    process_orphans "${LOGFILE}"
     if [ $RET -eq 0 ]; then
       copy_logfile ${JAIL}
     fi
   else
     error "Logfile \`${LOGFILE}\' does not exist."
     wait_for_enter
+  fi
+}
+
+# Search orphaned files and add them to pkg-plist (after question)
+# Params:
+# $1 - logfile
+process_orphans() {
+  [ -r "$1" ] || return
+  if grep -q -m 1 "^Error: Orphaned:" "$1"; then
+    A=`question "Should I add orphaned files to pkg-plist (y/n)?"`
+    if [ "$A" = "y" ]; then
+      sed -n "/^Error: Orphaned: / s,Error: Orphaned: ,,p" "$1" >> `get_pkgplist`
+    fi
+    A=`question "Do you want edit pkg-plist file?"`
+    if [ "$A" = "y" ]; then
+      ${EDITOR} `get_pkgplist`
+    fi
   fi
 }
 
