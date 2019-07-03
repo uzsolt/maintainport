@@ -317,6 +317,7 @@ process_logfile() {
       cat ${LOGFILE} | ${PAGER}
     fi
     process_orphans "${LOGFILE}"
+    process_missings "${LOGFILE}"
     if [ $RET -eq 0 ]; then
       copy_logfile ${JAIL}
     fi
@@ -335,6 +336,27 @@ process_orphans() {
     A=`question "Should I add orphaned files to pkg-plist (y/n)?"`
     if [ "$A" = "y" ]; then
       sed -n "/^Error: Orphaned: / s,Error: Orphaned: ,,p" "$1" >> `get_pkgplist`
+    fi
+    A=`question "Do you want edit pkg-plist file?"`
+    if [ "$A" = "y" ]; then
+      ${EDITOR} `get_pkgplist`
+    fi
+  fi
+}
+
+# Search missing files and remove them from pkg-plist (after question)
+# Params:
+# $1 - logfile
+process_missings() {
+  [ -r "$1" ] || return
+  if grep -q -m 1 "^Error: Missing:" "$1"; then
+    A=`question "Should I remove missing files from pkg-plist (y/n)?"`
+    if [ "$A" = "y" ]; then
+      tmpfile=`mktemp`
+      sed -n '/^Error: Missing: / s,Error: Missing: \(.*\),\\@\1@d,p' "$1" > ${tmpfile}
+      cat ${tmpfile}
+      sed -i '' -f "${tmpfile}" `get_pkgplist`
+      rm ${tmpfile}
     fi
     A=`question "Do you want edit pkg-plist file?"`
     if [ "$A" = "y" ]; then
