@@ -354,7 +354,6 @@ process_missings() {
     if [ "$A" = "y" ]; then
       tmpfile=`mktemp`
       sed -n '/^Error: Missing: / s,Error: Missing: \(.*\),\\@\1@d,p' "$1" > ${tmpfile}
-      cat ${tmpfile}
       sed -i '' -f "${tmpfile}" `get_pkgplist`
       rm ${tmpfile}
     fi
