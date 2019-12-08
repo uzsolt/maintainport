@@ -64,9 +64,13 @@ init() {
 	P_PORTSDIR=${P_PORTSDIR:-/usr/local/poudriere/ports/}
 	P_PORT=${P_PORT:-default}
 	P_LOGDIR=${P_LOGDIR:-/usr/local/poudriere/data/logs/bulk/}
+  P_PACKDIR=${P_PACKDIR:-/usr/local/poudriere/data/packages/}
 
 	WWW_LOGDIR=${WWW_LOGDIR:-/usr/local/www/freebsd/logs/}
 	WWW_DIFFDIR=${WWW_DIFFDIR:-/usr/local/www/freebsd/diff/}
+  WWW_TESTPACKAGEDIR=${WWW_TESTPACKAGEDIR:-/usr/local/www/freebsd/test_pkg/}
+
+  PACK_SUFFIX=${PACK_SUFFIX:-.txz}
 
 	MSG=0
 	if which -s poudriere; then
