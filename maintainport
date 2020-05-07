@@ -239,8 +239,8 @@ menu_main() {
 
 create_diff() {
   CURDIR=`pwd`
-  cd ${WORKINGDIR}
-  ${VCS} ${VCS_DIFF} .
+  cd ${P_PORTSDIR}/${P_PORT}
+  ${VCS} ${VCS_DIFF} ${PORT}
   cd ${CURDIR}
 }
 
