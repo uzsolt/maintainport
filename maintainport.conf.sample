@@ -1,0 +1,40 @@
+# which editor want to use
+EDITOR=vim
+
+# which shell
+SHELL=/bin/tcsh
+
+# which pager want to use
+PAGER="less -R"
+
+# which VCS command do you use (svn, svnlite, git, etc.)
+# VCS=svnlite
+VCS="svnlite"
+
+# which is the command of status in your VCS
+VCS_STATUS="status"
+
+# which is the command of diff in your VCS
+VCS_DIFF="diff"
+
+# which is the command of revert
+#VCS_REVERT="revert --recursive"
+VCS_REVERT="revert *"
+
+# where is the poudriere's port trees
+P_PORTSDIR=/usr/local/poudriere/ports/
+
+# which porttree do you use
+P_PORT=head
+
+# where is the poudriere's log directory
+P_LOGDIR=/usr/local/poudriere/data/logs/bulk/
+
+P_PACKDIR=/usr/local/poudriere/data/packages/
+
+# where do you want copy the diff
+WWW_DIFFDIR=/usr/local/www/freebsd/diff/
+
+WWW_TESTPACKAGEDIR=/usr/local/www/freebsd/test_pkg/
+
+PACK_SUFFIX=".txz"
